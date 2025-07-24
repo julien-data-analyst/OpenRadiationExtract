@@ -116,7 +116,7 @@ def streaming_csv_measurements():
 
             # Remettre à zéro pour tout relire
             file.seek(0)
-            for chunk in pd.read_csv(file, sep=";", chunksize=100_000):
+            for chunk in pd.read_csv(file, sep=";", chunksize=5_000):
                 yield chunk.to_csv(index=False, header=False)
 
     # Retourne la réponse HTTP
