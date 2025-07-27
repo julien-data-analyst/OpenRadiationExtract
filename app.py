@@ -6,7 +6,6 @@
 
 # Importation des librairies
 from flask import Flask, Response
-import pandas as pd
 import tarfile
 import requests
 from pathlib import Path
@@ -106,18 +105,17 @@ def streaming_csv_measurements():
 
     # Vérifie que le fichier est en cache, sinon le télécharge et l'extrait du fichier compressé
     ensure_csv_cached()
-
-    # Fonction de Streaming CSV
+    
+    # Fonction de Streaming CSV (sans pandas)
     def generate():
-        with open(CACHE_CSV_FILE, "rb") as file:
-            # Lire l'en-tête séparément
-            header = pd.read_csv(file, sep=";", nrows=0).to_csv(index=False)
+        with open(CACHE_CSV_FILE, "r", encoding="utf-8") as file:
+            # Lire et envoyer l'en-tête
+            header = next(file)
             yield header
 
-            # Remettre à zéro pour tout relire
-            file.seek(0)
-            for chunk in pd.read_csv(file, sep=";", chunksize=5_000):
-                yield chunk.to_csv(index=False, header=False)
+            # Streamer les lignes suivantes
+            for line in file:
+                yield line
 
     # Retourne la réponse HTTP
     return Response(generate(), mimetype="text/csv")
