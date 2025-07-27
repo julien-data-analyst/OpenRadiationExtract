@@ -10,6 +10,8 @@ import tarfile
 import requests
 from pathlib import Path
 import time
+#from memory_profiler import profile
+import pandas as pd
 
 # Création de l'application
 app = Flask(__name__)
@@ -27,6 +29,7 @@ CACHE_CSV_FILE = CACHE_DIR / "measurements.csv"
 MAX_CACHE_AGE = 24 * 60 * 60  # 86400 secondes
 
 # Fonction : télécharger et extraire le fichier CSV une seule fois
+#@profile
 def ensure_csv_cached():
     """
     Fonction : Extraction des données CSV de la requête HTTP pour les mesures de radiations (measurements.csv)
@@ -51,10 +54,13 @@ def ensure_csv_cached():
     # S'il existe et qu'il a plus de 24 heures qu'il existe ou qu'il n'existe pas, le télécharger et le mettre en cache
     if update_required:
 
-        # Alors, on le mets à jour
+        # Alors, on le mets à jour (en streaming)
         print("Mise à jour du cache CSV (ancien ou absent)")
-        response = requests.get(url_open_radiation)
-        CACHE_TAR_FILE.write_bytes(response.content)
+        response = requests.get(url_open_radiation, stream=True)
+            
+        with open(CACHE_TAR_FILE, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
 
         # Ouverture du fichier compressé et extraction du fichier CSV
         with tarfile.open(CACHE_TAR_FILE, mode="r:gz") as tar:
@@ -71,6 +77,20 @@ def ensure_csv_cached():
                 f_out.write(f_in.read())
 
         print("Fichier CSV mis à jour dans le cache")
+
+# Fonction de Streaming CSV (sans pandas)
+#@profile
+def generate():
+    with open(CACHE_CSV_FILE, "rb") as file:
+        # Lire l'en-tête séparément
+        header = pd.read_csv(file, sep=";", nrows=0).to_csv(index=False)
+        yield header
+
+        # Remettre à zéro pour tout relire
+        file.seek(0)
+        for chunk in pd.read_csv(file, sep=";", chunksize=100_000):
+            yield chunk.to_csv(index=False, header=False)
+
 
 ##########################################-
 # Création des différentes routes 
@@ -105,17 +125,6 @@ def streaming_csv_measurements():
 
     # Vérifie que le fichier est en cache, sinon le télécharge et l'extrait du fichier compressé
     ensure_csv_cached()
-    
-    # Fonction de Streaming CSV (sans pandas)
-    def generate():
-        with open(CACHE_CSV_FILE, "r", encoding="utf-8") as file:
-            # Lire et envoyer l'en-tête
-            header = next(file)
-            yield header
-
-            # Streamer les lignes suivantes
-            for line in file:
-                yield line
 
     # Retourne la réponse HTTP
     return Response(generate(), mimetype="text/csv")
