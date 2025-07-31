@@ -110,18 +110,6 @@ def log_memory_usage(message: str):
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         f.write(f"[{timestamp}] {message}\n")
 
-# Vérification de l'utilisation de la mémoire (limite 512 MB)
-def get_memory_usage_mb():
-    """
-    Fonction : permet de revoyer l'utilisation de mémoire de l'application
-    """
-    # permet de connaître le coût en mémoire du processus
-    process = psutil.Process(os.getpid())
-    mem_info = process.memory_info()
-
-    return mem_info.rss / (1024 ** 2)  # Convertir en MB
-
-
 ##########################################-
 # Création des différentes routes 
 ##########################################-
