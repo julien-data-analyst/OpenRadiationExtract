@@ -95,7 +95,9 @@ def ensure_csv_cached():
         
         # Appel de la fonction
         mem_used = get_memory_usage_mb()
-        print(f"Mémoire utilisée extraction dans le dossier compressé : {mem_used}")
+        msg = f"Mémoire utilisée extraction dans le dossier compressé : {mem_used}"
+        log_memory_usage(msg)
+        log_memory_usage("Extraction des données réussies pour la partie dossier compressée.")
         print("Fichier CSV mis à jour dans le cache")
 
 # Permet d'enregistrer les différents étapes de mémoires utilisées
@@ -151,24 +153,44 @@ def memoire_utilisee():
     # Ajout dans un HTML
     html = f"""
         <h1>Utilisation mémoire actuelle : {mem_used:.2f} MB</h1>
+        <h2>Historique d'utilisation mémoire</h2>
         <pre>{logs}</pre>
     """
 
     return html
+
+# Nettoyer le log
+@app.route("/memoire/reset")
+def reset_log():
+    if LOG_FILE.exists():
+        LOG_FILE.unlink()
+    return "<h1>Log mémoire réinitialisé</h1>"
 
 @app.route('/api/data/', methods=["GET"])
 def renitialiser_cache():
     """
     Fonction : Permet d'enlever le cache pour un refraîchissement des données
     """
-
+    html = ""
     # Supprimer le cache pour garantir des données fraîches (dans le cas du redémarrage du serveur)
-    if CACHE_CSV_FILE.exists():
-        print("Suppression du cache existant...")
+    if CACHE_CSV_FILE.exists() :
+        print("Suppression du cache existant CSV...")
         CACHE_CSV_FILE.unlink()
-        return "<h1> Suppression de la cache réussie </h1>"
+       
+        html += "<h1> Suppression de la cache réussie pour le CSV</h1>"
     else:
-        return "<h1> La cache n'existait pas avant </h1>"
+        html += "<h1> La cache n'existait pas avant pour le CSV</h1>"
+    
+    if CACHE_TAR_FILE.exists() :
+        print("Suppression du cache existant compressé...")
+        CACHE_TAR_FILE.unlink()
+        html += "<h1> Suppression de la cache réussie pour le fichier compressé TAR</h1>"
+    else:
+        html += "<h1> La cache n'existait pas avant pour le fichier compressé TAR</h1>"
+    
+    return html
+
+
 
 # Api pour récupérer les mesures d'OpenRadiation
 #@profile
@@ -181,16 +203,27 @@ def streaming_csv_measurements():
 
     # Vérifie que le fichier est en cache, sinon le télécharge et l'extrait du fichier compressé
     ensure_csv_cached()
-
-    # Mémoire plus faible
+    
+    # Mémoire plus faible en version streaming
     def generate():
-        for i, chunk in enumerate(pd.read_csv(CACHE_CSV_FILE, sep=";", chunksize=100_000)):
-            # Retourne la réponse HTTP
-            mem_used = get_memory_usage_mb()
-            msg = f"Mémoire utilisée dans la partie extraction CSV : {mem_used} MB"
-            #print(msg)
-            log_memory_usage(msg) # On enregistre
-            yield chunk.to_csv(index=False, header=(i == 0))
+        with open(CACHE_CSV_FILE, encoding="utf-8") as f:
+            # Lire et envoyer l'en-tête
+            header = f.readline()
+            yield header
+
+            total = sum(1 for _ in f)
+            f.seek(0)
+            
+            # Lire ligne par ligne et surveiller la mémoire
+            for i, line in enumerate(f, start=1):
+
+                if i in {1, total//2, total-1}:
+                    mem_used = get_memory_usage_mb()
+                    msg = f"Ligne {i} — Mémoire utilisée : {mem_used:.2f} MB"
+                    #print(msg)
+                    log_memory_usage(msg)
+
+                yield line
 
 
     return Response(generate(), mimetype="text/csv")
