@@ -25,14 +25,6 @@ else:
         return usage.ru_maxrss / 1024
 import os
 
-def get_memory_usage_mb():
-    """
-    Récupérer l'utilisation en mémoire du programme en question
-    """
-    process = psutil.Process(os.getpid())
-    mem_info = process.memory_info()
-    return mem_info.rss / (1024 ** 2)  # Convertir en MB
-
 # Création de l'application
 app = Flask(__name__)
 
