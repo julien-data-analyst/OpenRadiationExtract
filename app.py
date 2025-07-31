@@ -10,15 +10,20 @@ import tarfile
 import requests
 from pathlib import Path
 import time
-#from memory_profiler import profile
-import pandas as pd
-import psutil
-import os
-import warnings
-#from memory_profiler import memory_usage
+import sys
+if sys.platform == "win32":
+    import psutil
 
-# Enlever les avertissements de Pandas (notamment pour le read_csv)
-warnings.simplefilter(action='ignore', category=pd.errors.DtypeWarning)
+    def get_memory_usage_mb():
+        process = psutil.Process(os.getpid())
+        return process.memory_info().rss / (1024 ** 2)
+else:
+    import resource
+
+    def get_memory_usage_mb():
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        return usage.ru_maxrss / 1024
+import os
 
 def get_memory_usage_mb():
     """
@@ -213,7 +218,7 @@ def streaming_csv_measurements():
 
             total = sum(1 for _ in f)
             f.seek(0)
-            
+
             # Lire ligne par ligne et surveiller la mémoire
             for i, line in enumerate(f, start=1):
 
