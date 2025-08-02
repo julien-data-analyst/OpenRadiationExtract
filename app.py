@@ -15,14 +15,21 @@ if sys.platform == "win32":
     import psutil
 
     def get_memory_usage_mb():
+        """
+        Fonction : utilisation de la mémoire avec psutil en MB sous Windows.
+        """
         process = psutil.Process(os.getpid())
         return process.memory_info().rss / (1024 ** 2)
 else:
     import resource
 
     def get_memory_usage_mb():
+        """
+        Fonction : utilisation de la mémoire avec psutil en MB sous Linux.
+        """
         usage = resource.getrusage(resource.RUSAGE_SELF)
         return usage.ru_maxrss / 1024
+    
 import os
 
 # Création de l'application
@@ -117,6 +124,9 @@ def log_memory_usage(message: str):
 # Ajout d'une page main
 @app.route('/', methods=["GET", "POST"]) # Préciser les requêtes http possibles, sinon erreur 405 (si autre que GET)
 def index():
+    """
+    Fonction : Page d'accueil de l'API.
+    """
     return '<h1>Bienvenue sur le serveur Flask des données concernant OpenRadiation</h1>'
 
 @app.route("/memoire")
@@ -147,6 +157,9 @@ def memoire_utilisee():
 # Nettoyer le log
 @app.route("/memoire/reset")
 def reset_log():
+    """
+    Fonction : Enlever tous les logs enregistrés jusqu'à maintenant
+    """
     if LOG_FILE.exists():
         LOG_FILE.unlink()
     return "<h1>Log mémoire réinitialisé</h1>"
