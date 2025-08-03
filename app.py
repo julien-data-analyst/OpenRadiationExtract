@@ -188,7 +188,15 @@ def renitialiser_cache():
     
     return html
 
+@app.route("/api/data/act_cache", methods=["GET"])
+def actualisation_csv_cached():
+    """
+    Fonction : permet d'actualiser les données du fichier CSV en cache
+    """
 
+    ensure_csv_cached()
+
+    return "<h1> Fichier CSV en cache actualisé </h1>"
 
 # Api pour récupérer les mesures d'OpenRadiation
 #@profile
