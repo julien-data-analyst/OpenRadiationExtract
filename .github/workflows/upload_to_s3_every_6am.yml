@@ -1,0 +1,33 @@
+name: Upload OpenRadiation JSONL to S3
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # 🕕 Tous les jours à 6h du matin UTC
+  workflow_dispatch:     # 🚀 Permet de lancer manuellement via l'interface GitHub
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    env:
+      S3_BUCKET_NAME: your-bucket-name
+      AWS_REGION: your-region-name
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas boto3 pyarrow
+
+      - name: Run data pipeline
+        run: python actualisation_donnees.py
