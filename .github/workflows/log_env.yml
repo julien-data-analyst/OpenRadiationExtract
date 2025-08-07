@@ -29,3 +29,10 @@ jobs:
           else
             echo "✅ AWS_REGION est bien présent"
           fi
+
+          if [ -z "${{ secrets.S3_BUCKET_NAME }}" ]; then
+            echo "❌ S3_BUCKET_NAME est vide !"
+            exit 1
+          else
+            echo "✅ S3_BUCKET_NAME est bien présent"
+          fi
