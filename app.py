@@ -5,7 +5,7 @@
 ###############################-
 
 # Importation des librairies
-from flask import Flask, Response
+from flask import Flask, Response, redirect
 import sys
 from logger_write import log_memory_usage
 import boto3
@@ -43,6 +43,7 @@ bucket_name = os.environ['S3_BUCKET_NAME'] # Le nom du bucket
 S3_OBJECT_NAME = "data/measurements.jsonl" # Chemin pour mettre le fichier parquet dans le S3
 # Pour les logs
 LOG_FILE = "memoire.log"
+s3_key = "data/measurements.jsonl"  # chemin dans S3
 
 ##########################################-
 # Création des différentes routes 
@@ -100,9 +101,6 @@ def streaming_json_measurements():
     Retour : résultat JSON de la requête HTTP
     """
 
-    # Configuration de S3
-    s3_key = "data/measurements.jsonl"  # chemin dans S3
-
     # Création du client S3
     s3 = boto3.client(
         's3',
@@ -124,6 +122,20 @@ def streaming_json_measurements():
     # Retourne les données en streaming
     return Response(generate(), mimetype="application/json")
 
+EXPIRES_IN = 300  # 5 minutes
+
+@app.route('/s3-url')
+def generate_signed_url():
+    """
+    Fonction : permet de générer une URL du S3 avec accès et de récupérer le fichier JSON en question
+    """
+    s3 = boto3.client('s3', region_name=os.environ['AWS_REGION'])
+    url = s3.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': bucket_name, 'Key': s3_key},
+        ExpiresIn=EXPIRES_IN
+    )
+    return redirect(url)
 #################################-
 #################################-
 
