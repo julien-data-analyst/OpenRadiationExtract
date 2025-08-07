@@ -18,7 +18,7 @@ URL_TAR = "https://request.openradiation.net/openradiation_dataset.tar.gz" # URL
 LOCAL_DIR = Path("cache") # Dossier cache
 LOCAL_TAR = LOCAL_DIR / "openradiation_dataset.tar.gz" # Emplacement du fichier compressé
 JSON_FILE = LOCAL_DIR / "measurements.jsonl" # Emplacement du fichier JSON
-LOG_FILE = LOCAL_DIR / "memoire.log" # Pour les logs
+LOG_FILE = "memoire.log" # Pour les logs
 
 # AWS S3
 bucket_name = os.environ['S3_BUCKET_NAME'] # Le nom du bucket
