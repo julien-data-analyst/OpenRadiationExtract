@@ -1,0 +1,31 @@
+name: Vérification des secrets AWS
+
+on:
+  workflow_dispatch:  # Permet d'exécuter manuellement depuis GitHub
+
+jobs:
+  check-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vérifier que les secrets sont bien chargés
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+            echo "❌ AWS_ACCESS_KEY_ID est vide !"
+            exit 1
+          else
+            echo "✅ AWS_ACCESS_KEY_ID est bien présent"
+          fi
+
+          if [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "❌ AWS_SECRET_ACCESS_KEY est vide !"
+            exit 1
+          else
+            echo "✅ AWS_SECRET_ACCESS_KEY est bien présent"
+          fi
+
+          if [ -z "${{ secrets.AWS_REGION }}" ]; then
+            echo "❌ AWS_REGION est vide !"
+            exit 1
+          else
+            echo "✅ AWS_REGION est bien présent"
+          fi
