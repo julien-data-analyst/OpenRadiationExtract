@@ -41,7 +41,7 @@ url_open_radiation = "https://request.openradiation.net/openradiation_dataset.ta
 # Chemin local pour le cache (évite le re-téléchargement)
 CACHE_DIR = Path("cache")
 # AWS S3
-bucket_name = os.environ['S3_BUCKET_NAME'] # Le nom du bucket
+bucket_name = "open-radiation-bucket" # Le nom du bucket
 S3_OBJECT_NAME = "data/measurements.jsonl" # Chemin pour mettre le fichier parquet dans le S3
 # Pour les logs
 LOG_FILE = CACHE_DIR / "memoire.log"
