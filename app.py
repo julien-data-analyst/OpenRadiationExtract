@@ -5,10 +5,12 @@
 ###############################-
 
 # Importation des librairies
-from flask import Flask, Response, redirect
+from flask import Flask, Response, redirect, request
 import sys
 from logger_write import log_memory_usage
 import boto3
+import json
+import datetime
 
 if sys.platform == "win32":
     import psutil
@@ -109,15 +111,36 @@ def streaming_json_measurements():
         aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
     )
 
+    # Lecture du paramètre de requête (par défaut False)
+    filter_last_two_years = request.args.get("filter_last_two_years", "false").lower() == "true"
+
+    # Calcul de la date limite si filtrage actif
+    if filter_last_two_years:
+        date_limite = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=365*2)
+
     # Récupération du fichier S3
     s3_object = s3.get_object(Bucket=bucket_name, Key=s3_key)
     s3_body = s3_object['Body']
 
-    # Fonction génératrice pour streamer ligne par ligne
+    # Fonction génératrice pour streamer ligne par ligne avec filtrage optionnel
     def generate():
+        """
+        Fonction : fonction génératrice permettant de streamer ligne par ligne avec filtrage des deux dernières années optionnel.
+        """
         for line in s3_body.iter_lines():
             if line:
-                yield line.decode("utf-8") + "\n"
+                try:
+                    data = json.loads(line)
+                    if filter_last_two_years:
+                        # Convertit la date en objet datetime
+                        date_mesure = datetime.datetime.fromisoformat(data["DateAndTimeOfCreation"].replace("Z", "+00:00"))
+                        if date_mesure >= date_limite:
+                            yield json.dumps(data) + "\n"
+                    else:
+                        yield line.decode("utf-8") + "\n"
+                except Exception as e:
+                    # En cas de problème de parsing JSON ou date
+                    yield line.decode("utf-8") + "\n"
 
     # Retourne les données en streaming
     return Response(generate(), mimetype="application/json")
@@ -129,7 +152,11 @@ def generate_signed_url():
     """
     Fonction : permet de générer une URL du S3 avec accès et de récupérer le fichier JSON en question
     """
+
+    # Client boto3
     s3 = boto3.client('s3', region_name=os.environ['AWS_REGION'])
+
+    # Permet de générer une URL temporairer pour télécharger le fichier
     url = s3.generate_presigned_url(
         'get_object',
         Params={'Bucket': bucket_name, 'Key': s3_key},
