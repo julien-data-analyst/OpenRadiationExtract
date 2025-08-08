@@ -116,7 +116,9 @@ def streaming_json_measurements():
 
     # Calcul de la date limite si filtrage actif
     if filter_last_two_years:
-        date_limite = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=365*2)
+        now = datetime.datetime.now(datetime.timezone.utc)
+        annee_courante = now.year
+        annee_precedente = annee_courante - 1
 
     # Récupération du fichier S3
     s3_object = s3.get_object(Bucket=bucket_name, Key=s3_key)
@@ -134,8 +136,10 @@ def streaming_json_measurements():
                     if filter_last_two_years:
                         # Convertit la date en objet datetime
                         date_mesure = datetime.datetime.fromisoformat(data["dateAndTimeOfCreation"].replace("Z", "+00:00"))
-                        if date_mesure >= date_limite:
+                        if date_mesure.year not in (annee_courante, annee_precedente):
                             yield json.dumps(data) + "\n"
+                        else:
+                            break # On arrête l'extraction des données car on a atteint les mesures trop vieilles (ordre décroissante)
                     else:
                         yield line.decode("utf-8") + "\n"
                 except Exception as e:
