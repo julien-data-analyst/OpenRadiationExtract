@@ -133,7 +133,7 @@ def streaming_json_measurements():
                     data = json.loads(line)
                     if filter_last_two_years:
                         # Convertit la date en objet datetime
-                        date_mesure = datetime.datetime.fromisoformat(data["DateAndTimeOfCreation"].replace("Z", "+00:00"))
+                        date_mesure = datetime.datetime.fromisoformat(data["dateAndTimeOfCreation"].replace("Z", "+00:00"))
                         if date_mesure >= date_limite:
                             yield json.dumps(data) + "\n"
                     else:
