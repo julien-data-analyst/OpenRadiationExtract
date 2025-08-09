@@ -27,4 +27,4 @@ def log_memory_usage(message: str):
 
 if __name__=="__main__":
     log_memory_usage("test message")
-    LOG_FILE.read_text()
+    #LOG_FILE.read_text()

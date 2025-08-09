@@ -79,19 +79,28 @@ def extract_csv_from_tar():
     log_memory_usage(msg)
     print(msg)
 
-def convert_to_json(df: pd.DataFrame):
+def convert_to_json(df: pd.DataFrame, path: str):
     """
     Fonction : Conversion en JSON les données du DataFrame.
+
+    Arguments :
+    - df : DataFrame des données à convertir en JSON
+    - path : chemin qui permet d'aller chercher ses données en JSON
+
+    Renvoit :
+    - Path : renvoit le chemin utilisé pour chercher les données
     """
 
     # Utilisation de Pandas pour convertir vers un fichier PARQUET
     msg = "Conversion en JSON des données..."
     log_memory_usage(msg)
     print(msg)
-    df.to_json(JSON_FILE, orient="records", lines=True)
-    msg = f"Fichier JSON généré : {JSON_FILE}"
+    df.to_json(path, orient="records", lines=True)
+    msg = f"Fichier JSON généré : {path}"
     log_memory_usage(msg)
     print(msg)
+
+    return path
 
 def upload_to_s3():
     """
@@ -120,5 +129,5 @@ if __name__ == "__main__":
     # Exécution des différentes étapes
     download_tar() # Téléchargement du fichier compressé
     df = extract_csv_from_tar() # Extraire le fichier CSV du fichier compressé
-    convert_to_json(df) # Conversion en PARQUET
+    convert_to_json(df, JSON_FILE) # Conversion en PARQUET
     upload_to_s3() # Téléversement du fichier vers le S3
