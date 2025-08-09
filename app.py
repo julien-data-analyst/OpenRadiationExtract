@@ -42,7 +42,7 @@ url_open_radiation = "https://request.openradiation.net/openradiation_dataset.ta
 # Chemin local pour le cache (évite le re-téléchargement)
 # AWS S3
 bucket_name = os.environ['S3_BUCKET_NAME'] # Le nom du bucket
-S3_OBJECT_NAME = "data/measurements.jsonl" # Chemin pour mettre le fichier parquet dans le S3
+S3_OBJECT_NAME = "data/openradiation.jsonl" # Chemin pour mettre le fichier parquet dans le S3
 EXPIRES_IN = 300  # 5 minutes
 
 ##########################################-
@@ -68,7 +68,7 @@ def memoire_utilisee():
     log_memory_usage(f"Consultation mémoire actuelle : {mem_used:.2f} MB")
 
     # Récupérer les différents logs concernant l'extraction
-    if os.path.exists(LOG_FILE) :
+    if LOG_FILE :
         logs = LOG_FILE.read_text(encoding="utf-8")
     else:
         logs = "Aucun log trouvé."
@@ -94,10 +94,10 @@ def reset_log():
 
 # Api pour récupérer les mesures d'OpenRadiation
 #@profile
-@app.route('/api/data/measurements')
-def streaming_json_measurements():
+@app.route('/api/data/all')
+def streaming_json_all():
     """
-    Fonction : permet d'avoir les données JSON concernant les mesures de radioactivité en Streaming
+    Fonction : permet d'avoir les données JSON concernant les mesures de radioactivité avec toutes leurs informations en Streaming
     Retour : résultat JSON de la requête HTTP
     """
 

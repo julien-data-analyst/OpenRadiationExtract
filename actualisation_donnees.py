@@ -17,11 +17,11 @@ from logger_write import log_memory_usage
 URL_TAR = "https://request.openradiation.net/openradiation_dataset.tar.gz" # URL pour récupérer le fichier compressé
 LOCAL_DIR = Path("cache") # Dossier cache
 LOCAL_TAR = LOCAL_DIR / "openradiation_dataset.tar.gz" # Emplacement du fichier compressé
-JSON_FILE = LOCAL_DIR / "measurements.jsonl" # Emplacement du fichier JSON
+JSON_FILE = LOCAL_DIR / "openradiation.jsonl" # Emplacement du fichier JSON
 
 # AWS S3
 bucket_name = os.environ['S3_BUCKET_NAME'] # Le nom du bucket
-S3_OBJECT_NAME = "data/measurements.jsonl" # Chemin pour mettre le fichier parquet dans le S3
+S3_OBJECT_NAME = "data/openradiation.jsonl" # Chemin pour mettre le fichier parquet dans le S3
 
 # ----------------------------------
 

@@ -6,10 +6,10 @@
 
 # Chargement de la librairie
 import time
+from pathlib import Path
 
 # Pour les logs
-LOG_FILE = "memoire.log"
-
+LOG_FILE = Path("memoire.log")
 
 # Permet d'enregistrer les différents étapes de mémoires utilisées
 def log_memory_usage(message: str):
@@ -23,3 +23,8 @@ def log_memory_usage(message: str):
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
         f.write(f"[{timestamp}] {message}\n")
+
+
+if __name__=="__main__":
+    log_memory_usage("test message")
+    LOG_FILE.read_text()
