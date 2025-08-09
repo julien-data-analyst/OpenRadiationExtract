@@ -31,3 +31,6 @@ jobs:
 
       - name: Run data pipeline
         run: python actualisation_donnees.py
+
+      - name: Run data pipeline for multiple JSON file
+        run: python table_creation.py
