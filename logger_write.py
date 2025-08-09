@@ -1,9 +1,14 @@
-import time
-from pathlib import Path
+###################-
+# Auteur : Julien RENOULT
+# Date : 09/08/2025
+# Sujet : Création de fonctions pour le logging
+###################-
 
-CACHE_DIR = Path("cache")
+# Chargement de la librairie
+import time
+
 # Pour les logs
-LOG_FILE = CACHE_DIR / "memoire.log"
+LOG_FILE = "memoire.log"
 
 
 # Permet d'enregistrer les différents étapes de mémoires utilisées

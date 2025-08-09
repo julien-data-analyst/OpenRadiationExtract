@@ -7,7 +7,7 @@
 # Importation des librairies
 from flask import Flask, Response, redirect, request
 import sys
-from logger_write import log_memory_usage
+from logger_write import log_memory_usage, LOG_FILE
 import boto3
 import json
 import datetime
@@ -43,8 +43,6 @@ url_open_radiation = "https://request.openradiation.net/openradiation_dataset.ta
 # AWS S3
 bucket_name = os.environ['S3_BUCKET_NAME'] # Le nom du bucket
 S3_OBJECT_NAME = "data/measurements.jsonl" # Chemin pour mettre le fichier parquet dans le S3
-# Pour les logs
-LOG_FILE = "memoire.log"
 EXPIRES_IN = 300  # 5 minutes
 
 ##########################################-
@@ -177,7 +175,7 @@ def generate_signed_url():
     # Permet de générer une URL temporairer pour télécharger le fichier
     url = s3.generate_presigned_url(
         'get_object',
-        Params={'Bucket': bucket_name, 'Key': s3_key},
+        Params={'Bucket': bucket_name, 'Key': S3_OBJECT_NAME},
         ExpiresIn=EXPIRES_IN
     )
 
