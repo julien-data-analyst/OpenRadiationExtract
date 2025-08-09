@@ -1,7 +1,7 @@
 ###############################-
 # Auteur : Julien RENOULT
 # Sujet : création d'une application Flask permettant de récupérer facilement une extraction de données
-# Date : 24/07/2025
+# Date : 24/07/2025 - 09/08/2025
 ###############################-
 
 # Importation des librairies
@@ -12,6 +12,7 @@ import boto3
 import json
 import datetime
 
+# Selon le système auquel est lancé cette application (Windows, Linux), on va faire différemennt le calcul de mémoire
 if sys.platform == "win32":
     import psutil
 
@@ -30,7 +31,6 @@ else:
         """
         usage = resource.getrusage(resource.RUSAGE_SELF)
         return usage.ru_maxrss / 1024
-    
 import os
 
 # Création de l'application
@@ -39,93 +39,27 @@ app = Flask(__name__)
 # URL de la requête HTTP utilisée pour récupérer le fichier compressé
 url_open_radiation = "https://request.openradiation.net/openradiation_dataset.tar.gz"
 
-# Chemin local pour le cache (évite le re-téléchargement)
 # AWS S3
 bucket_name = os.environ['S3_BUCKET_NAME'] # Le nom du bucket
-S3_OBJECT_NAME = "data/openradiation.jsonl" # Chemin pour mettre le fichier parquet dans le S3
 EXPIRES_IN = 300  # 5 minutes
 
 ##########################################-
-# Création des différentes routes 
+# Création des différentes fct utilitaires pour l'application
 ##########################################-
 
-# Ajout d'une page main
-@app.route('/', methods=["GET", "POST"]) # Préciser les requêtes http possibles, sinon erreur 405 (si autre que GET)
-def index():
-    """
-    Fonction : Page d'accueil de l'API.
-    """
-    return '<h1>Bienvenue sur le serveur Flask des données concernant OpenRadiation</h1>'
-
-@app.route("/memoire")
-def memoire_utilisee():
-    """
-    Fonction : Page sur les mémoires utilisées de l'application Flask.
-    """
-
-    # Récupérer la mémoire utilisée pour cette page
-    mem_used = get_memory_usage_mb()
-    log_memory_usage(f"Consultation mémoire actuelle : {mem_used:.2f} MB")
-
-    # Récupérer les différents logs concernant l'extraction
-    if LOG_FILE :
-        logs = LOG_FILE.read_text(encoding="utf-8")
-    else:
-        logs = "Aucun log trouvé."
-
-    # Ajout dans un HTML
-    html = f"""
-        <h1>Utilisation mémoire actuelle : {mem_used:.2f} MB</h1>
-        <h2>Historique d'utilisation mémoire</h2>
-        <pre>{logs}</pre>
-    """
-
-    return html
-
-# Nettoyer le log
-@app.route("/memoire/reset")
-def reset_log():
-    """
-    Fonction : Enlever tous les logs enregistrés jusqu'à maintenant
-    """
-    if LOG_FILE.exists():
-        LOG_FILE.unlink()
-    return "<h1>Log mémoire réinitialisé</h1>"
-
-# Api pour récupérer les mesures d'OpenRadiation
-#@profile
-@app.route('/api/data/all')
-def streaming_json_all():
-    """
-    Fonction : permet d'avoir les données JSON concernant les mesures de radioactivité avec toutes leurs informations en Streaming
-    Retour : résultat JSON de la requête HTTP
-    """
-
-    # Création du client S3
-    s3 = boto3.client(
-        's3',
-        region_name=os.environ['AWS_REGION'],
-        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
-    )
-
-    # Lecture du paramètre de requête (par défaut False)
-    filter_last_two_years = request.args.get("filter_last_two_years", "false").lower() == "true"
-
-    # Calcul de la date limite si filtrage actif
-    if filter_last_two_years:
-        now = datetime.datetime.now(datetime.timezone.utc)
-        annee_courante = now.year
-        annee_precedente = annee_courante - 1
-
-    # Récupération du fichier S3 et du corps du fichier
-    s3_object = s3.get_object(Bucket=bucket_name, Key=S3_OBJECT_NAME)
-    s3_body = s3_object['Body']
-
-    # Fonction génératrice pour streamer ligne par ligne avec filtrage optionnel
-    def generate():
+# Fonction génératrice pour streamer ligne par ligne avec filtrage optionnel
+def generate(s3_body, filter_last_two_years=False, annee_courante=0, annee_precedente=0):
         """
         Fonction : fonction génératrice permettant de streamer ligne par ligne avec filtrage des deux dernières années optionnel.
+
+        Arguments :
+        - s3_body : corps du document JSON récupéré du S3
+        - filter_last_two_years (par défaut : False) : permet le filtrage sur l'année actuelle et l'année précédente
+        - annee_courante : l'année actuelle à utiliser pour filtrer
+        - annee_precedente : l'année dernière à utiliser pour filtrer
+
+        Renvoit en yield :
+        - line : la ligne JSON parcourue
         """
 
         # Pour parcourir chaque ligne du fichier JSON en question
@@ -160,14 +94,117 @@ def streaming_json_all():
                     # En cas de problème de parsing JSON ou date, on passe cette ligne
                     pass
 
-    # Retourne les données en streaming
-    return Response(generate(), mimetype="application/json")
+##########################################-
+# Création des différentes routes 
+##########################################-
 
-@app.route('/s3-url')
-def generate_signed_url():
+# Ajout d'une page main
+@app.route('/', methods=["GET"]) # Préciser les requêtes http possibles, sinon erreur 405 (si autre que GET)
+def index():
+    """
+    Fonction : Page d'accueil de l'API.
+    """
+    return '<h1>Bienvenue sur le serveur Flask des données concernant OpenRadiation</h1>'
+
+@app.route("/memoire", methods=["GET"])
+def memoire_utilisee():
+    """
+    Fonction : Page sur les mémoires utilisées de l'application Flask.
+    """
+
+    # Récupérer la mémoire utilisée pour cette page
+    mem_used = get_memory_usage_mb()
+    log_memory_usage(f"Consultation mémoire actuelle : {mem_used:.2f} MB")
+
+    # Récupérer les différents logs concernant l'extraction
+    if LOG_FILE :
+        logs = LOG_FILE.read_text(encoding="utf-8")
+    else:
+        logs = "Aucun log trouvé."
+
+    # Ajout dans un HTML
+    html = f"""
+        <h1>Utilisation mémoire actuelle : {mem_used:.2f} MB</h1>
+        <h2>Historique d'utilisation mémoire</h2>
+        <pre>{logs}</pre>
+    """
+
+    return html
+
+# Nettoyer le log
+@app.route("/memoire/reset", methods=["GET"])
+def reset_log():
+    """
+    Fonction : Enlever tous les logs enregistrés jusqu'à maintenant
+    """
+    if LOG_FILE.exists():
+        LOG_FILE.unlink()
+    return "<h1>Log mémoire réinitialisé</h1>"
+
+# Api pour récupérer les mesures d'OpenRadiation
+#@profile
+@app.route('/api/data/<type>', methods=["GET"])
+def streaming_json(type):
+    """
+    Fonction : permet d'avvoir les données JSON selon le type d'extraction que veut l'utilisateur parmi openradiation, measurements, devices, apparatus et flight.
+    Selon le type d'extraction, plusieurs filtrages peuvent être utilisées.
+
+    Retour : résultat JSON de la requête HTTP
+    """
+
+    # Pour savoir si on peut utiliser ou non le paramètre optionnel
+    if type in ('openradiation', 'measurements'):
+        # Lecture du paramètre de requête (par défaut False)
+        filter_last_two_years = request.args.get("filter_last_two_years", "false").lower() == "true"
+
+    else:
+        filter_last_two_years = False
+    
+    # Création du client S3
+    s3 = boto3.client(
+        's3',
+        region_name=os.environ['AWS_REGION'],
+        aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
+        aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"]
+    )
+
+    # Récupérons maintenant les données
+    s3_object_name = f"data/{type}.jsonl" # Chemin pour mettre le fichier JSON dans le S3
+    
+    # Calcul de la date limite si filtrage actif
+    if filter_last_two_years:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        annee_courante = now.year
+        annee_precedente = annee_courante - 1
+    else :
+        annee_courante = 0
+        annee_precedente = 0
+
+    # Récupération du fichier S3 et du corps du fichier
+    s3_object = s3.get_object(Bucket=bucket_name, Key=s3_object_name)
+    s3_body = s3_object['Body']
+
+    mem = get_memory_usage_mb()
+    msg = f"Mémoire utilisée pour la récupération du JSON : {mem:.2f}"
+    log_memory_usage(msg)
+    print(msg)
+
+    msg = f"Commencement du streaming JSON pour la requête type : {type}"
+    print(msg)
+    log_memory_usage(msg)
+
+    # Retourne les données en streaming
+    return Response(generate(s3_body, filter_last_two_years, 
+                             annee_courante, annee_precedente), mimetype="application/json")
+
+@app.route('/s3-url/<type>', methods=["GET"])
+def generate_signed_url(type):
     """
     Fonction : permet de générer une URL du S3 avec accès et de récupérer le fichier JSON en question (cela le télécharge directement)
     """
+
+    # Récupérons maintenant les données
+    s3_object_name = f"data/{type}.jsonl" # Chemin pour mettre le fichier JSON dans le S3
 
     # Client boto3
     s3 = boto3.client('s3', region_name=os.environ['AWS_REGION'])
@@ -175,9 +212,18 @@ def generate_signed_url():
     # Permet de générer une URL temporairer pour télécharger le fichier
     url = s3.generate_presigned_url(
         'get_object',
-        Params={'Bucket': bucket_name, 'Key': S3_OBJECT_NAME},
+        Params={'Bucket': bucket_name, 'Key': s3_object_name},
         ExpiresIn=EXPIRES_IN
     )
+
+    mem = get_memory_usage_mb()
+    msg = f"Mémoire utilisée pour la récupération du JSON : {mem:.2f}"
+    log_memory_usage(msg)
+    print(msg)
+
+    msg = "Redirection vers l'url généré pour télécharger le fichier JSON"
+    log_memory_usage(msg)
+    print(msg)
 
     # Retourne l'URL générer temporairement
     return redirect(url)

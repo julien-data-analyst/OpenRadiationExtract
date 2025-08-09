@@ -12,7 +12,6 @@ import os
 from logger_write import log_memory_usage
 from actualisation_donnees import convert_to_json
 from io import BytesIO, StringIO
-import numpy as np
 
 # Création du cache
 LOCAL_DIR = Path("cache") # Dossier cache
@@ -60,6 +59,13 @@ def read_json_s3():
     # Lecture sous pandas
     df = pd.read_json(BytesIO(response['Body'].read()), lines=True)
 
+    # Nettoyages des ID
+    df["deviceUuid"] = df["deviceUuid"].str.replace('"', '', regex=False)
+    df["deviceUuid"] = df["deviceUuid"].replace('', None)
+    df["apparatusId"] = df["apparatusId"].str.replace('"', '', regex=False)
+    df["apparatusId"] = df["apparatusId"].replace('', None)
+    df["flightId"] = df["flightId"].astype("Int64")
+
     return df
 
 def create_measurements_table(df):
@@ -92,10 +98,6 @@ def create_device_table(df):
     # Sélection des colonnes
     df_device = df[["deviceUuid", "devicePlatform", "deviceVersion", "deviceModel"]]
 
-    # Remplacer les guimets à l'intérieur de la colonne identifiant par vide 
-    df_device["deviceUuid"] = df_device["deviceUuid"].str.replace('"', '', regex=False)
-    df_device["deviceUuid"] = df_device["deviceUuid"].replace('', np.nan)
-
     # Enlever les lignes NA de la colonne devieUuid
     df_device = df_device.dropna(subset=["deviceUuid"])
 
@@ -114,10 +116,6 @@ def create_apparatus_table(df):
 
     # Sélection des colonnes
     df_apparatus = df[["apparatusId", "apparatusVersion", "apparatusSensorType", "apparatusTubeType"]]
-
-    # Remplacer les guimets à l'intérieur du texte par vide
-    df_apparatus["apparatusId"] = df_apparatus["apparatusId"].str.replace('"', '', regex=False)
-    df_apparatus["apparatusId"] = df_apparatus["apparatusId"].replace('', np.nan)
 
     # Enlever les lignes NA de la colonne devieUuid
     df_apparatus = df_apparatus.dropna(subset=["apparatusId"])
@@ -146,8 +144,7 @@ def create_flight_table(df):
     # Enlever les doublons 
     df_flight = df_flight.drop_duplicates(subset=["flightId"])
     
-    # Transformer la colonne flightId et windowSeat en integer
-    df_flight["flightId"] = df_flight["flightId"].astype("Int64")
+    # Transformer la colonne windowSeat en integer
     df_flight["windowSeat"] = df_flight["windowSeat"].astype("Int64")
 
     return df_flight
