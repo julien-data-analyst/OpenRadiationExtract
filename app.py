@@ -45,7 +45,7 @@ bucket_name = os.environ['S3_BUCKET_NAME'] # Le nom du bucket
 S3_OBJECT_NAME = "data/measurements.jsonl" # Chemin pour mettre le fichier parquet dans le S3
 # Pour les logs
 LOG_FILE = "memoire.log"
-s3_key = "data/measurements.jsonl"  # chemin dans S3
+EXPIRES_IN = 300  # 5 minutes
 
 ##########################################-
 # Création des différentes routes 
@@ -120,8 +120,8 @@ def streaming_json_measurements():
         annee_courante = now.year
         annee_precedente = annee_courante - 1
 
-    # Récupération du fichier S3
-    s3_object = s3.get_object(Bucket=bucket_name, Key=s3_key)
+    # Récupération du fichier S3 et du corps du fichier
+    s3_object = s3.get_object(Bucket=bucket_name, Key=S3_OBJECT_NAME)
     s3_body = s3_object['Body']
 
     # Fonction génératrice pour streamer ligne par ligne avec filtrage optionnel
@@ -129,32 +129,46 @@ def streaming_json_measurements():
         """
         Fonction : fonction génératrice permettant de streamer ligne par ligne avec filtrage des deux dernières années optionnel.
         """
+
+        # Pour parcourir chaque ligne du fichier JSON en question
         for line in s3_body.iter_lines():
+            
+            # Si la ligne est non vide
             if line:
+
+                # On essaye de le récupérer pour l'enregistrer dans notre base de données
                 try:
+
+                    # Dans le cas où filter_last_two_years=true alors on vérifie si la date de création de cette ligne est dans l'année n ou n-1
                     data = json.loads(line)
+
+                    # Filtrage optionnel si on l'a précisé
                     if filter_last_two_years:
+
                         # Convertit la date en objet datetime
                         date_mesure = datetime.datetime.fromisoformat(data["dateAndTimeOfCreation"].replace("Z", "+00:00"))
+
+                        # Condition dans les deux années
                         if date_mesure.year in (annee_courante, annee_precedente):
                             yield json.dumps(data) + "\n"
                         else:
                             break # On arrête l'extraction des données car on a atteint les mesures trop vieilles (ordre décroissante)
+                    
+                    # Si le filtrage n'est pas à appliquer, alors on le mets directement
                     else:
                         yield line.decode("utf-8") + "\n"
+
                 except Exception as e:
-                    # En cas de problème de parsing JSON ou date
-                    yield line.decode("utf-8") + "\n"
+                    # En cas de problème de parsing JSON ou date, on passe cette ligne
+                    pass
 
     # Retourne les données en streaming
     return Response(generate(), mimetype="application/json")
 
-EXPIRES_IN = 300  # 5 minutes
-
 @app.route('/s3-url')
 def generate_signed_url():
     """
-    Fonction : permet de générer une URL du S3 avec accès et de récupérer le fichier JSON en question
+    Fonction : permet de générer une URL du S3 avec accès et de récupérer le fichier JSON en question (cela le télécharge directement)
     """
 
     # Client boto3
@@ -166,6 +180,8 @@ def generate_signed_url():
         Params={'Bucket': bucket_name, 'Key': s3_key},
         ExpiresIn=EXPIRES_IN
     )
+
+    # Retourne l'URL générer temporairement
     return redirect(url)
 #################################-
 #################################-
