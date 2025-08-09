@@ -68,7 +68,7 @@ def memoire_utilisee():
     log_memory_usage(f"Consultation mémoire actuelle : {mem_used:.2f} MB")
 
     # Récupérer les différents logs concernant l'extraction
-    if LOG_FILE.exists():
+    if os.path.exists(LOG_FILE) :
         logs = LOG_FILE.read_text(encoding="utf-8")
     else:
         logs = "Aucun log trouvé."
