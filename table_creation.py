@@ -62,8 +62,10 @@ def read_json_s3():
     # Nettoyages des ID
     df["deviceUuid"] = df["deviceUuid"].str.replace('"', '', regex=False)
     df["deviceUuid"] = df["deviceUuid"].replace('', None)
+    df["deviceUuid"] = df["deviceUuid"].str.strip()
     df["apparatusId"] = df["apparatusId"].str.replace('"', '', regex=False)
     df["apparatusId"] = df["apparatusId"].replace('', None)
+    df["apparatusId"] = df["apparatusId"].str.strip()
     df["flightId"] = df["flightId"].astype("Int64")
 
     return df
