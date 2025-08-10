@@ -77,7 +77,7 @@ def create_measurements_table(df):
     """
 
     # Sélection des colonnes
-    df_measurements = df[["apparatusId", "temperature", "value", "hitsNumber", 
+    df_measurements = df[["reportUuid", "apparatusId", "temperature", "value", "hitsNumber", 
                     "startTime", "endTime", "latitude", "longitude", "deviceUuid", "userId", 
                     "measurementEnvironment", "rain", "storm", "flightId", "dateAndTimeOfCreation"]]
 
