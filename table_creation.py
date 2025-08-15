@@ -60,9 +60,11 @@ def read_json_s3():
     df = pd.read_json(BytesIO(response['Body'].read()), lines=True)
 
     # Nettoyages des ID
+    df["deviceUuid"] = df["deviceUuid"].str.lower()
     df["deviceUuid"] = df["deviceUuid"].str.replace('"', '', regex=False)
     df["deviceUuid"] = df["deviceUuid"].replace('', None)
     df["deviceUuid"] = df["deviceUuid"].str.strip()
+    df["apparatusId"] = df["apparatusId"].str.lower()
     df["apparatusId"] = df["apparatusId"].str.replace('"', '', regex=False)
     df["apparatusId"] = df["apparatusId"].replace('', None)
     df["apparatusId"] = df["apparatusId"].str.strip()
