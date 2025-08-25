@@ -25,6 +25,7 @@ MEASUREMENTS_FILE = LOCAL_DIR / "measurements.jsonl" # les mesures obtenus
 DEVICE_FILE = LOCAL_DIR / "devices.jsonl" # les appareils de renseignements
 APPARATUS_FILE = LOCAL_DIR / "apparatus.jsonl" # les appareils de mesures
 FLIGHT_FILE = LOCAL_DIR / "flight.jsonl" # les vols concernés
+ALL_FILE = LOCAL_DIR / "openradiation.jsonl" # les mesures obtenus avec tous le détails pour chaque ligne
 
 ## Création des différentes fct pour créer les 4 tables ################################# 
 def read_json_s3():
@@ -207,9 +208,11 @@ if __name__=="__main__":
     chemin_device = convert_to_json(df_device, DEVICE_FILE)
     chemin_apparatus = convert_to_json(df_apparatus, APPARATUS_FILE)
     chemin_flight = convert_to_json(df_flight, FLIGHT_FILE)
-
+    chemin_all = convert_to_json(df, ALL_FILE)
+    
     # Téléversement dans le S3
     upload_to_s3(MEASUREMENTS_FILE, S3_MEASUREMENTS)
     upload_to_s3(DEVICE_FILE, S3_DEVICE)
     upload_to_s3(APPARATUS_FILE, S3_APPARATUS)
     upload_to_s3(FLIGHT_FILE, S3_FLIGHT)
+    upload_to_s3(ALL_FILE, S3_OBJECT_NAME)
