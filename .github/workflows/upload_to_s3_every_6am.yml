@@ -1,8 +1,8 @@
 name: Upload OpenRadiation JSONL to S3
 
 on:
-  schedule:
-    - cron: '0 6 * * *'  # 🕕 Tous les jours à 6h du matin UTC
+  #schedule:
+  #  - cron: '0 6 * * *'  # 🕕 Tous les jours à 6h du matin UTC
   workflow_dispatch:     # 🚀 Permet de lancer manuellement via l'interface GitHub
 
 jobs:
